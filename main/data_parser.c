@@ -9,15 +9,15 @@
  * @param rpm Pointer to store the extracted RPM value.
  * @return true if parsing is successful, false otherwise.
  */
-bool parse_dirtrally2_packet(const uint8_t *buf, size_t len, int *gear, int *speed_kmh, int *rpm)
+bool parse_dirtrally2_packet(const uint8_t *buf, size_t len, int *gear, int *speed_kmh, int *rpm, int *max_rpm, int *idle_rpm)
 {
-    if (buf == NULL || gear == NULL || speed_kmh == NULL || rpm == NULL)
+    if (buf == NULL || gear == NULL || speed_kmh == NULL || rpm == NULL || max_rpm == NULL || idle_rpm == NULL)
     {
         ESP_LOGE("DataParser", "Null pointer provided for output parameters");
         return false;
     }
     
-    if (len < 152) // Check if buffer is large enough to contain required data
+    if (len < 260) // Check if buffer is large enough to contain required data
     {
         ESP_LOGE("DataParser", "Buffer too small to parse");
         return false;
@@ -34,6 +34,14 @@ bool parse_dirtrally2_packet(const uint8_t *buf, size_t len, int *gear, int *spe
     float gear_float;
     memcpy(&gear_float, &buf[132], sizeof(float));
     *gear = (int)gear_float;
+
+    float max_rpm_float;
+    memcpy(&max_rpm_float, &buf[252], sizeof(float));
+    *max_rpm = (int)max_rpm_float;
+
+    float idle_rpm_float;
+    memcpy(&idle_rpm_float, &buf[256], sizeof(float));
+    *idle_rpm = (int)idle_rpm_float;
 
     return true;
 }

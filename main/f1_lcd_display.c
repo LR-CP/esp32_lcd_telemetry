@@ -15,6 +15,7 @@
 
 #include "lcddriver.h"
 #include "data_parser.h"
+#include "ledcontrol.h"
 
 #define PORT 20777
 
@@ -47,10 +48,7 @@ void udp_listener(void *pvParameters)
 
     ESP_LOGI("UDP", "UDP server setup complete on port %d", PORT);
 
-    int len;
-    int gear;
-    int speed_kmh;
-    int rpm;
+    int len, gear, speed_kmh, rpm, max_rpm, idle_rpm;
     int last_gear = 0, last_speed_kmh = 0, last_rpm = 0;
     uint8_t rx_buffer[256];
     bool first_render = true;
@@ -68,7 +66,7 @@ void udp_listener(void *pvParameters)
 
         ESP_LOGE("recvfrom", "len = %d", len);
 
-        if(parse_dirtrally2_packet(rx_buffer, len, &gear, &speed_kmh, &rpm))
+        if(parse_dirtrally2_packet(rx_buffer, len, &gear, &speed_kmh, &rpm, &max_rpm, &idle_rpm))
         {
             if (first_render)
             {
@@ -175,8 +173,25 @@ void app_main(void)
         return;
     }
 
+    // pins I used: 18,32,33,14,12,13,5,0,2,15
+    gpio_num_t gpio_num[10] = {GPIO_NUM_33, GPIO_NUM_18, GPIO_NUM_32, GPIO_NUM_13, GPIO_NUM_12, GPIO_NUM_14, GPIO_NUM_0, GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_5};
+
+    esp_err_t err = led_init(gpio_num);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("LED", "Failed to initialize LEDs");
+        return;
+    }
+
+    ESP_LOGV("LED", "LEDs initialized successfully");
+
+    int i = 1000;
     while(1)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));  // 1 second
+        led_set_rpm(gpio_num, i, 10000, 1000);
+        vTaskDelay(pdMS_TO_TICKS(100));  // 1 second
+        i+=100;
+        if (i > 10000) i = 1000;
+        // ESP_LOGI("LED", "i = %d", i);
     }
 }
