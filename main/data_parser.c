@@ -17,7 +17,7 @@ bool parse_dirtrally2_packet(const uint8_t *buf, size_t len, int *gear, int *spe
         return false;
     }
     
-    if (len < 260) // Check if buffer is large enough to contain required data
+    if (len < 256) // Check if buffer is large enough to contain required data
     {
         ESP_LOGE("DataParser", "Buffer too small to parse");
         return false;

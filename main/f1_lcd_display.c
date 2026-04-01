@@ -19,6 +19,12 @@
 
 #define PORT 20777
 
+typedef struct
+{
+    lcd_t *lcd;
+    gpio_num_t *gpio_nums;
+} udpParams;
+
 void udp_listener(void *pvParameters)
 {
     // Create a UDP socket
@@ -30,7 +36,9 @@ void udp_listener(void *pvParameters)
     }
 
     // Cast the parameter to the correct type
-    lcd_t *lcd = (lcd_t *)pvParameters;
+    udpParams *params = (udpParams *)pvParameters;
+    lcd_t *lcd = params->lcd;
+    gpio_num_t *gpio_nums = params->gpio_nums;
 
     // Bind the socket to the specified port
     struct sockaddr_in server_addr;
@@ -80,6 +88,7 @@ void udp_listener(void *pvParameters)
             else if (gear != last_gear || speed_kmh != last_speed_kmh || rpm != last_rpm)
             {
                 render_dashboard(lcd, gear, speed_kmh, rpm);
+                led_set_rpm(gpio_nums, rpm, max_rpm, idle_rpm);
                 last_gear = gear;
                 last_speed_kmh = speed_kmh;
                 last_rpm = rpm;
@@ -164,8 +173,6 @@ void app_main(void)
         return;
     }
 
-    xTaskCreate(udp_listener, "udp_listener", 4096, (void*)&lcd, 5, NULL);
-
     err = lcdWriteMessage(&lcd, "Dirt Rally 2.0 Dash\nLucas Ricciardi");
     if (err != ESP_OK)
     {
@@ -174,24 +181,26 @@ void app_main(void)
     }
 
     // pins I used: 18,32,33,14,12,13,5,0,2,15
-    gpio_num_t gpio_num[10] = {GPIO_NUM_33, GPIO_NUM_18, GPIO_NUM_32, GPIO_NUM_13, GPIO_NUM_12, GPIO_NUM_14, GPIO_NUM_0, GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_5};
+    static gpio_num_t gpio_num[10] = {GPIO_NUM_33, GPIO_NUM_18, GPIO_NUM_32, GPIO_NUM_13, GPIO_NUM_12, GPIO_NUM_14, GPIO_NUM_0, GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_5};
 
-    esp_err_t err = led_init(gpio_num);
+    udpParams task_params = {
+        .lcd = &lcd,
+        .gpio_nums = gpio_num
+    };
+
+    err = led_init(gpio_num);
     if (err != ESP_OK)
     {
         ESP_LOGE("LED", "Failed to initialize LEDs");
         return;
     }
 
+    xTaskCreate(udp_listener, "udp_listener", 4096, &task_params, 5, NULL);
+
     ESP_LOGV("LED", "LEDs initialized successfully");
 
-    int i = 1000;
     while(1)
     {
-        led_set_rpm(gpio_num, i, 10000, 1000);
-        vTaskDelay(pdMS_TO_TICKS(100));  // 1 second
-        i+=100;
-        if (i > 10000) i = 1000;
-        // ESP_LOGI("LED", "i = %d", i);
+        vTaskDelay(pdMS_TO_TICKS(1000));  // 1 second
     }
 }
