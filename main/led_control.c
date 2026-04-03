@@ -53,7 +53,6 @@ esp_err_t led_set_rpm(gpio_num_t gpio_num[10], int rpm, int max_rpm, int idle_rp
     }
 
     int range = max_rpm / num_leds; // RPM range per LED
-    // Write a simple algorithm to determine how many LEDs to light up based on the current RPM
     int leds_to_light = 0;
     if (rpm <= idle_rpm)
     {
