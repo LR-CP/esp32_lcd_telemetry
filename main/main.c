@@ -13,9 +13,9 @@
 #include "lwip/sys.h"
 #include <lwip/netdb.h>
 
-#include "lcddriver.h"
+#include "lcd_driver.h"
 #include "data_parser.h"
-#include "ledcontrol.h"
+#include "led_control.h"
 
 typedef struct
 {

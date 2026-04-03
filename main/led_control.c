@@ -1,15 +1,9 @@
-#include "ledcontrol.h"
+#include "led_control.h"
 
 esp_err_t led_init(gpio_num_t gpio_num[10])
 {
     for (int i =0; i < 10; i++)
     {
-        // esp_err_t err = gpio_output_enable(gpio_num[i]);
-        // if (err != ESP_OK)
-        // {
-        //     ESP_LOGE("LED", "Failed to enable GPIO%d", gpio_num[i]);
-        //     return err;
-        // }
         esp_err_t err = gpio_set_direction(gpio_num[i], GPIO_MODE_OUTPUT);
         if (err != ESP_OK)
         { 
