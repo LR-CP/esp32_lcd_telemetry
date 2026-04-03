@@ -6,7 +6,7 @@ It will display simple telemtry data such as the RPM, current gear, speed, and c
 
 ## Board Layout
 
-![board_layout](./img/board_setup.jpg)
+![board_setup](./img/board_setup.jpg)
 
 ## Components
 - [ESP32 Wrover MCU](https://store.freenove.com/products/fnk0060)
