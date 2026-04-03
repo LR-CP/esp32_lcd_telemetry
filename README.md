@@ -4,6 +4,10 @@
 The goal of this project is to visualize streamed data from games such as F1-25 and DiRT Rally 2.0 to different peripherals such as an I2C LCD display and LED strip hooked up to my ESP32 Wrover MCU.
 It will display simple telemtry data such as the RPM, current gear, speed, and current lap time.
 
+## Board Layout
+
+![board_layout](./img/board_setup.jpg)
+
 ## Components
 - [ESP32 Wrover MCU](https://store.freenove.com/products/fnk0060)
 - [1602 I2C LCD Display](https://www.amazon.ca/backlight-control-character-compatible-applications/dp/B0G6F8L91N?th=1)
@@ -13,6 +17,7 @@ It will display simple telemtry data such as the RPM, current gear, speed, and c
 I am using the new `ESP-IDF Installation Manager (eim)` GUI software provided by Espressif to initialize the base `esp` repository and provide the necessary libraries.  
 
 Within the tool, I press the 'open console' button which opens a terminal that has the PATH variables set for the esp-idf commands using `idf.py`.  
+![eim](./img/eim_console.png)
 Within the terminal, I run the following commands:
 1. Create Project: `idf.py create-project sim_lcd_display && cd sim_lcd_display`
 2. Set the target: `idf.py set-target esp32`
@@ -24,9 +29,15 @@ There are some parameters to configure to setup Wifi for the UDP server.
 **"Wifi Config"**:  
 - `WIFI_SSID`: The SSID of your Wifi  
 - `WIFI_PASSWORD`: The password for your Wifi  
+
+![wifi_params](./img/menu_config_wifi.png)
+
+
 - `PORT`: The port to listen on for the UDP server (should match the port you configured in your game settings)  
 - `GAME`: The game to configure the UDP packet parsing for (currently DiRT Rally 2.0)
-    - 1 = DiRT Rally 2.0, 2 - etc
+    - 1 = DiRT Rally 2.0, 2 - etc  
+
+![udp_params](./img/menu_config_udp_config.png)
 
 ## Compilation
 
