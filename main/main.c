@@ -21,6 +21,7 @@ typedef struct
 {
     lcd_t *lcd;
     gpio_num_t *gpio_nums;
+    gpio_num_t *buzzer_gpio;
 } udpParams;
 
 void udp_listener(void *pvParameters)
@@ -37,6 +38,13 @@ void udp_listener(void *pvParameters)
     udpParams *params = (udpParams *)pvParameters;
     lcd_t *lcd = params->lcd;
     gpio_num_t *gpio_nums = params->gpio_nums;
+    gpio_num_t *buzzer_gpio = params->buzzer_gpio;
+    esp_err_t err = gpio_set_direction(*buzzer_gpio, GPIO_MODE_OUTPUT);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("GPIO", "Failed to set buzzer GPIO direction");
+        return;
+    }
 
     // Bind the socket to the specified port
     struct sockaddr_in server_addr;
@@ -70,7 +78,7 @@ void udp_listener(void *pvParameters)
             continue;
         }
 
-        ESP_LOGE("recvfrom", "len = %d", len);
+        // ESP_LOGE("recvfrom", "len = %d", len);
 
         if (CONFIG_GAME == 1)
         {
@@ -92,6 +100,25 @@ void udp_listener(void *pvParameters)
                     last_gear = gear;
                     last_speed_kmh = speed_kmh;
                     last_rpm = rpm;
+                    ESP_LOGI("Buzzer", "rpm: %d, max_rpm: %d, idle_rpm: %d", rpm, max_rpm, idle_rpm);
+                    if (rpm > (max_rpm - (max_rpm * 0.1)))
+                    {
+                        ESP_LOGI("Buzzer", "RPM is above 99%% of max RPM, activating buzzer");
+                        err = gpio_set_level(*buzzer_gpio, true);
+                        if (err != ESP_OK)
+                        {
+                            ESP_LOGE("GPIO", "Failed to set buzzer GPIO level");
+                        }
+                    }
+                    else
+                    {
+                        ESP_LOGI("Buzzer", "RPM is below 99%% of max RPM, deactivating buzzer");
+                        err = gpio_set_level(*buzzer_gpio, false);
+                        if (err != ESP_OK)
+                        {
+                            ESP_LOGE("GPIO", "Failed to set buzzer GPIO level");
+                        }
+                    }
                 }
             }
             else
@@ -111,6 +138,54 @@ void udp_listener(void *pvParameters)
  */
 void app_main(void)
 {
+    /** I2C master bus configuration */
+    i2c_master_bus_config_t i2c_mst_config = {
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .i2c_port = I2C_NUM_0, // I2C port number (not used when auto selecting)
+        .scl_io_num = GPIO_NUM_22,
+        .sda_io_num = GPIO_NUM_21,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
+    };
+
+    i2c_master_bus_handle_t bus_handle;
+    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &bus_handle));
+
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = 0x27,
+        .scl_speed_hz = 100000,
+    };
+
+    i2c_master_dev_handle_t dev_handle;
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle));
+
+    /** LCD initialization */
+    static lcd_t lcd;
+    esp_err_t err;
+
+    err = lcdInit(&lcd, dev_handle);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("LCD", "Failed to initialize LCD");
+        return;
+    }
+
+    err = lcdClear(&lcd);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("LCD", "Failed to clear LCD");
+        return;
+    }
+
+    err = lcdWriteMessage(&lcd, "Configuring WiFI...");
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("LCD", "Failed to write message to LCD");
+        return;
+    }
+
+    /** WiFi initialization */
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -138,38 +213,30 @@ void app_main(void)
     esp_netif_get_ip_info(netif, &ip_info);
 
     ESP_LOGI("WIFI", "IP: " IPSTR, IP2STR(&ip_info.ip));
-
-    /** I2C master bus configuration */
-    i2c_master_bus_config_t i2c_mst_config = {
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .i2c_port = I2C_NUM_0, // I2C port number (not used when auto selecting)
-        .scl_io_num = GPIO_NUM_22,
-        .sda_io_num = GPIO_NUM_21,
-        .glitch_ignore_cnt = 7,
-        .flags.enable_internal_pullup = true,
-    };
-
-    i2c_master_bus_handle_t bus_handle;
-    ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_mst_config, &bus_handle));
-
-    i2c_device_config_t dev_cfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = 0x27,
-        .scl_speed_hz = 100000,
-    };
-
-    i2c_master_dev_handle_t dev_handle;
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &dev_cfg, &dev_handle));
-
-    static lcd_t lcd;
-    esp_err_t err;
-
-    err = lcdInit(&lcd, dev_handle);
+    err = lcdClear(&lcd);
     if (err != ESP_OK)
     {
-        ESP_LOGE("LCD", "Failed to initialize LCD");
+        ESP_LOGE("LCD", "Failed to clear LCD");
         return;
     }
+    char msg[64];
+    snprintf(msg, sizeof(msg), "WiFi Connected!\nIP: " IPSTR, IP2STR(&ip_info.ip));
+    err = lcdWriteMessage(&lcd, msg);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("LCD", "Failed to write message to LCD");
+        return;
+    }
+
+    static gpio_num_t gpio_nums[10] = {GPIO_NUM_33, GPIO_NUM_18, GPIO_NUM_32, GPIO_NUM_13, GPIO_NUM_12, GPIO_NUM_14, GPIO_NUM_0, GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_5};
+    static gpio_num_t buzzer_gpio = GPIO_NUM_4;
+
+    udpParams task_params = {
+        .lcd = &lcd,
+        .gpio_nums = gpio_nums,
+        .buzzer_gpio = &buzzer_gpio};
+
+    vTaskDelay(pdMS_TO_TICKS(1000)); // 1 second
 
     err = lcdClear(&lcd);
     if (err != ESP_OK)
@@ -178,20 +245,7 @@ void app_main(void)
         return;
     }
 
-    err = lcdWriteMessage(&lcd, "Dirt Rally 2.0 Dash\nLucas Ricciardi");
-    if (err != ESP_OK)
-    {
-        ESP_LOGE("LCD", "Failed to write message to LCD");
-        return;
-    }
-
-    static gpio_num_t gpio_num[10] = {GPIO_NUM_33, GPIO_NUM_18, GPIO_NUM_32, GPIO_NUM_13, GPIO_NUM_12, GPIO_NUM_14, GPIO_NUM_0, GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_5};
-
-    udpParams task_params = {
-        .lcd = &lcd,
-        .gpio_nums = gpio_num};
-
-    err = led_init(gpio_num);
+    err = led_init(gpio_nums);
     if (err != ESP_OK)
     {
         ESP_LOGE("LED", "Failed to initialize LEDs");
@@ -201,6 +255,8 @@ void app_main(void)
     xTaskCreate(udp_listener, "udp_listener", 4096, &task_params, 5, NULL);
 
     ESP_LOGV("LED", "LEDs initialized successfully");
+
+    render_dashboard(&lcd, 0, 0, 0);
 
     while (1)
     {
