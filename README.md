@@ -42,7 +42,7 @@ There are some parameters to configure to setup Wifi for the UDP server.
 ## Compilation
 
 1. Build: `idf.py build`
-2. Flash & Run: `idf.py -p PORT flash`
+2. Flash & Run: `idf.py -p PORT flash`, where `PORT` is the `/dev/tty` device that the board shows up as (should be similar to `/dev/ttyUSB0`)
 
 >[!NOTE]
 > Need to add user to dialout in order to flash board: `sudo usermod -a -G dialout $USER` (logout and back in after running command)  
