@@ -47,7 +47,7 @@ There are some parameters to configure to setup Wifi for the UDP server.
 >[!NOTE]
 > Need to add user to dialout in order to flash board: `sudo usermod -a -G dialout $USER` (logout and back in after running command)  
 
-## Notes
+## Component Setup
 
 ### LCD Display
 I am using the [1602 I2C LCD Display](https://www.handsontec.com/dataspecs/module/I2C_1602_LCD.pdf)  
@@ -80,3 +80,7 @@ I have the LED's mapped to these pins (Bar 1 is leftmost bar and so on):
 - `Bar 10` → `GPIO_NUM_5`
 >[!NOTE]
 > I need to make these Kconfig params
+
+## Notes
+
+See [NOTES.md](./NOTES.md) for my rough notes when working on this.
