@@ -65,4 +65,18 @@ I currently have the pins mapped accordingly:
 > I need to make these Kconfig params
 
 ### LED Bar Graph
-Fairly simple to configure, only requires 220 Ohm resistors to GND for each LED bar
+Fairly simple to configure, only requires 220 Ohm resistors to GND for each LED bar.  
+
+I have the LED's mapped to these pins (Bar 1 is leftmost bar and so on):
+- `Bar 1` → `GPIO_NUM_33`
+- `Bar 2` → `GPIO_NUM_18`
+- `Bar 3` → `GPIO_NUM_32`
+- `Bar 4` → `GPIO_NUM_13`
+- `Bar 5` → `GPIO_NUM_12`
+- `Bar 6` → `GPIO_NUM_14`
+- `Bar 7` → `GPIO_NUM_0`
+- `Bar 8` → `GPIO_NUM_15`
+- `Bar 9` → `GPIO_NUM_2`
+- `Bar 10` → `GPIO_NUM_5`
+>[!NOTE]
+> I need to make these Kconfig params

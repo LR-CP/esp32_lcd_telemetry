@@ -185,7 +185,6 @@ void app_main(void)
         return;
     }
 
-    // pins I used: 18,32,33,14,12,13,5,0,2,15
     static gpio_num_t gpio_num[10] = {GPIO_NUM_33, GPIO_NUM_18, GPIO_NUM_32, GPIO_NUM_13, GPIO_NUM_12, GPIO_NUM_14, GPIO_NUM_0, GPIO_NUM_15, GPIO_NUM_2, GPIO_NUM_5};
 
     udpParams task_params = {
