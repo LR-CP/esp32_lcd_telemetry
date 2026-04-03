@@ -1,24 +1,40 @@
-# F1 LCD Display
+# Racing Sim LCD Display
 
 ## Synopsis
-The goal of this project is to display streamed data from the F125 game to an I2C LCD display hooked up to my ESP32 Wrover MCU.
+The goal of this project is to visualize streamed data from games such as F1-25 and DiRT Rally 2.0 to different peripherals such as an I2C LCD display and LED strip hooked up to my ESP32 Wrover MCU.
 It will display simple telemtry data such as the RPM, current gear, speed, and current lap time.
 
-## Hardware
-- ESP32 Wrover MCU
-- 1602 I2C LCD Display
+## Components
+- [ESP32 Wrover MCU](https://store.freenove.com/products/fnk0060)
+- [1602 I2C LCD Display](https://www.amazon.ca/backlight-control-character-compatible-applications/dp/B0G6F8L91N?th=1)
+- [LED bar graph display](https://www.digikey.ca/en/products/detail/kingbright/DC10YWA/1747578)
 
 ## Setup
-I am using the new `ESP-IDF Installation Manager (eim)` GUI software provided by Espressif to initialize the base `esp` repository and provide the necessary libraries. Within the tool, I press the 'open console' button which opens a terminal that has the PATH variables set for the esp-idf commands.  
+I am using the new `ESP-IDF Installation Manager (eim)` GUI software provided by Espressif to initialize the base `esp` repository and provide the necessary libraries.  
 
+Within the tool, I press the 'open console' button which opens a terminal that has the PATH variables set for the esp-idf commands using `idf.py`.  
 Within the terminal, I run the following commands:
-1. Create Project: `idf.py create-project f1_lcd_display && cd f1_lcd_display`
+1. Create Project: `idf.py create-project sim_lcd_display && cd sim_lcd_display`
 2. Set the target: `idf.py set-target esp32`
-3. Configure params: `idf.py menuconfig` (not using any yet)
-4. Build: `idf.py build`
-5. Flash & Run: `idf.py -p PORT flash`
+3. Configure params: `idf.py menuconfig` (see [Kconfig Parameters](#kconfig-parameters))
 
-**NOTE:** Need to add user to dialout to flash board: `sudo usermod -a -G dialout $USER` and then logout and back in.
+### Kconfig Parameters
+There are some parameters to configure to setup Wifi for the UDP server.  
+
+**"Wifi Config"**:  
+- `WIFI_SSID`: The SSID of your Wifi  
+- `WIFI_PASSWORD`: The password for your Wifi  
+- `PORT`: The port to listen on for the UDP server (should match the port you configured in your game settings)  
+- `GAME`: The game to configure the UDP packet parsing for (currently DiRT Rally 2.0)
+    - 1 = DiRT Rally 2.0, 2 - etc
+
+## Compilation
+
+1. Build: `idf.py build`
+2. Flash & Run: `idf.py -p PORT flash`
+
+>[!NOTE]
+> Need to add user to dialout in order to flash board: `sudo usermod -a -G dialout $USER` (logout and back in after running command)  
 
 ## Notes
 
@@ -27,4 +43,15 @@ I am using the [1602 I2C LCD Display](https://www.handsontec.com/dataspecs/modul
 
 The docs for integrating the I2C peripheral can be found [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/lcd/index.html)  
 
-For now I am using the esp component made for this LCD display bu running `idf.py add-dependency "vgerwen/lcd1602^1.1.0"`
+None of the third-party dependencies were working properly so I have written my own "driver" for the LCD screen to be able to easily control it. Since the LCD module I have has the I2C backpack, the LCD library controls the display by creating bytes to send from the backpack to the display.   
+
+I currently have the pins mapped accordingly:
+- `VCC` → `5V`
+- `GND` → `GND`
+- `SDA` → `GPIO21`
+- `SCL` → `GPIO22`
+>[!NOTE]
+> I need to make these Kconfig params
+
+### LED Bar Graph
+Fairly simple to configure, only requires 220 Ohm resistors to GND for each LED bar

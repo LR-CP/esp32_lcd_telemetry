@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include "sdkconfig.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_system.h"
@@ -16,8 +16,6 @@
 #include "lcddriver.h"
 #include "data_parser.h"
 #include "ledcontrol.h"
-
-#define PORT 20777
 
 typedef struct
 {
@@ -45,7 +43,7 @@ void udp_listener(void *pvParameters)
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(PORT);
+    server_addr.sin_port = htons(CONFIG_PORT);
 
     if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
@@ -54,7 +52,7 @@ void udp_listener(void *pvParameters)
         return;
     }
 
-    ESP_LOGI("UDP", "UDP server setup complete on port %d", PORT);
+    ESP_LOGI("UDP", "UDP server setup complete on port %d", CONFIG_PORT);
 
     int len, gear, speed_kmh, rpm, max_rpm, idle_rpm;
     int last_gear = 0, last_speed_kmh = 0, last_rpm = 0;
@@ -63,7 +61,7 @@ void udp_listener(void *pvParameters)
 
     ESP_LOGI("UDP", "Waiting on recvfrom...");
 
-    while(1)
+    while (1)
     {
         len = recvfrom(sock, rx_buffer, sizeof(rx_buffer), 0, NULL, NULL);
         if (len < 0)
@@ -74,29 +72,36 @@ void udp_listener(void *pvParameters)
 
         ESP_LOGE("recvfrom", "len = %d", len);
 
-        if(parse_dirtrally2_packet(rx_buffer, len, &gear, &speed_kmh, &rpm, &max_rpm, &idle_rpm))
+        if (CONFIG_GAME == 1)
         {
-            if (first_render)
+            if (parse_dirtrally2_packet(rx_buffer, len, &gear, &speed_kmh, &rpm, &max_rpm, &idle_rpm))
             {
-                lcdClear(lcd);
-                render_dashboard(lcd, gear, speed_kmh, rpm);
-                first_render = false;
-                last_gear = gear;
-                last_speed_kmh = speed_kmh;
-                last_rpm = rpm;
+                if (first_render)
+                {
+                    lcdClear(lcd);
+                    render_dashboard(lcd, gear, speed_kmh, rpm);
+                    first_render = false;
+                    last_gear = gear;
+                    last_speed_kmh = speed_kmh;
+                    last_rpm = rpm;
+                }
+                else if (gear != last_gear || speed_kmh != last_speed_kmh || rpm != last_rpm)
+                {
+                    render_dashboard(lcd, gear, speed_kmh, rpm);
+                    led_set_rpm(gpio_nums, rpm, max_rpm, idle_rpm);
+                    last_gear = gear;
+                    last_speed_kmh = speed_kmh;
+                    last_rpm = rpm;
+                }
             }
-            else if (gear != last_gear || speed_kmh != last_speed_kmh || rpm != last_rpm)
+            else
             {
-                render_dashboard(lcd, gear, speed_kmh, rpm);
-                led_set_rpm(gpio_nums, rpm, max_rpm, idle_rpm);
-                last_gear = gear;
-                last_speed_kmh = speed_kmh;
-                last_rpm = rpm;
+                ESP_LOGW("UDP", "Received invalid packet");
             }
         }
-        else
+        else if (CONFIG_GAME == 2)
         {
-            ESP_LOGW("UDP", "Received invalid packet");
+            // F1 25
         }
     }
 }
@@ -117,8 +122,8 @@ void app_main(void)
 
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = "CHANGEME",
-            .password = "CHANGEME", // DO NOT KEEP THIS IS DUMB IM TIRED AND JUST WANNA TEST
+            .ssid = CONFIG_WIFI_SSID,
+            .password = CONFIG_WIFI_PASSWORD, // DO NOT KEEP THIS IS DUMB IM TIRED AND JUST WANNA TEST
         },
     };
 
@@ -126,7 +131,7 @@ void app_main(void)
     esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     esp_wifi_start();
     esp_wifi_connect();
-    vTaskDelay(pdMS_TO_TICKS(5000));  // 5 seconds
+    vTaskDelay(pdMS_TO_TICKS(5000)); // 5 seconds
 
     esp_netif_ip_info_t ip_info;
     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
@@ -185,8 +190,7 @@ void app_main(void)
 
     udpParams task_params = {
         .lcd = &lcd,
-        .gpio_nums = gpio_num
-    };
+        .gpio_nums = gpio_num};
 
     err = led_init(gpio_num);
     if (err != ESP_OK)
@@ -199,8 +203,8 @@ void app_main(void)
 
     ESP_LOGV("LED", "LEDs initialized successfully");
 
-    while(1)
+    while (1)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));  // 1 second
+        vTaskDelay(pdMS_TO_TICKS(1000)); // 1 second
     }
 }

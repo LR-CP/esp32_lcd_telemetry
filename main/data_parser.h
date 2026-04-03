@@ -1,5 +1,3 @@
-#include <stdint.h>
-#include <string.h>
 #include "esp_err.h"
 #include "esp_rom_sys.h"
 #include "esp_log.h"

@@ -1,0 +1,32 @@
+# Kconfig.projbuild content
+menu "Wifi Credentials"
+
+config WIFI_SSID
+    string "WiFi SSID"
+    default "myssid"
+    help
+        SSID (network name) for the example to connect to.
+
+config WIFI_PASSWORD
+    string "WiFi Password"
+    default "mypassword"
+    help
+        WiFi password (WPA or WPA2) for the example to use.
+
+endmenu
+
+menu "UDP Server Configuration"
+
+config PORT
+    int "Port"
+    default 20777
+    help
+        Port for the UDP server to listen on (should match the port you've specified in the game).
+
+config GAME
+    int "Game to configure the UDP packet parsing for"
+    default 1
+    help
+        Game to configure the UDP packet parsing for. 1 - DiRT Rally 2.0, 2 - F1 2024, etc
+
+endmenu
